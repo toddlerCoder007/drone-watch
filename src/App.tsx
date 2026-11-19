@@ -1,4 +1,4 @@
-import { Bell, Download, ExternalLink, RefreshCw, Satellite, Settings, Star, Waypoints } from 'lucide-react'
+import { Bell, Download, ExternalLink, MapPin, RefreshCw, Satellite, Settings, Star, Waypoints } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SOURCES } from '../feeds.config'
 import { applyFilters, buildCards, hotspots, NO_FILTERS, type Card, type Filters } from './cards'
@@ -37,6 +37,7 @@ export function App() {
   const [panel, setPanel] = useState<'sources' | 'settings' | null>(null)
   const [snapshotAt, setSnapshotAt] = useState<string | undefined>()
   const [hoverPlace, setHoverPlace] = useState<string | undefined>()
+  const [openKey, setOpenKey] = useState<string | null>(null)
   const started = useRef(false)
   const feedTop = useRef<HTMLDivElement>(null)
 
@@ -122,6 +123,8 @@ export function App() {
   }
 
   const okSources = Object.values(status).filter(s => s.ok).length
+  const openPlace = shown.find(c => c.key === openKey)?.place?.name
+  const litPlace = hoverPlace ?? openPlace ?? filters.place
 
   return (
     <div className="shell">
@@ -201,7 +204,7 @@ export function App() {
 
       <div className="layout">
         <aside className="side">
-          <MapView spots={spots} selected={filters.place} highlighted={hoverPlace ?? filters.place} onSelect={selectPlace} />
+          <MapView spots={spots} selected={filters.place} highlighted={litPlace} onSelect={selectPlace} />
 
           <section className="filter-block" aria-label="Topics">
             <h2>Topics</h2>
@@ -290,10 +293,12 @@ export function App() {
             {shown.map(card => {
               const isStarred = card.items.some(i => starred.has(i.id))
               const Icon = storyIcon(card.tag.topics, card.tag.domain)
+              const isOpen = card.key === openKey
+              const panelId = `story-${card.key}`
               return (
                 <li
                   key={card.key}
-                  className={`strip ${card.tag.domain}${card.isNew ? ' new' : ''}${card.place && card.place.name === (hoverPlace ?? filters.place) ? ' lit' : ''}`}
+                  className={`strip ${card.tag.domain}${card.isNew ? ' new' : ''}${isOpen ? ' expanded' : ''}${card.place && card.place.name === litPlace ? ' lit' : ''}`}
                   onPointerEnter={() => card.place && setHoverPlace(card.place.name)}
                   onPointerLeave={() => setHoverPlace(undefined)}
                 >
@@ -312,11 +317,36 @@ export function App() {
                       <time dateTime={card.latestAt}>{ago(card.latestAt)}</time>
                     </div>
                     <h3>
-                      <a href={card.lead.url} target="_blank" rel="noreferrer">
+                      <button className="headline" aria-expanded={isOpen} aria-controls={panelId} onClick={() => setOpenKey(isOpen ? null : card.key)}>
                         {card.lead.title}
-                      </a>
+                      </button>
                     </h3>
                     {card.tag.summary && <p className="summary">{card.tag.summary}</p>}
+                    {isOpen && (
+                      <div className="story" id={panelId}>
+                        {card.items.map(i => (
+                          <article key={i.id} className="story-item">
+                            <p className="story-source">
+                              {i.sourceName}, <time dateTime={i.publishedAt}>{ago(i.publishedAt)}</time>
+                            </p>
+                            {i !== card.lead && <h4>{i.title}</h4>}
+                            {i.snippet && i.snippet !== i.title ? (
+                              <p className="story-text">{i.snippet.length >= 400 ? `${i.snippet.trimEnd()}…` : i.snippet}</p>
+                            ) : (
+                              <p className="story-text muted">This outlet published only a headline.</p>
+                            )}
+                            <a className="read" href={i.url} target="_blank" rel="noreferrer">
+                              Read on {i.sourceName.replace(/ \(via GDELT\)$/, '')} <ExternalLink size={14} aria-hidden />
+                            </a>
+                          </article>
+                        ))}
+                        {card.place && card.place.name !== filters.place && (
+                          <button className="story-place" onClick={() => selectPlace(card.place!.name)}>
+                            <MapPin size={15} aria-hidden /> All stories in {card.place.name}
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <div className="strip-foot">
                       <div className="topic-icons">
                         {card.tag.topics.map(t => {
