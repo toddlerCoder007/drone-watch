@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { applyFilters, buildCards, NO_FILTERS } from './cards'
+import { applyFilters, buildCards, hotspots, NO_FILTERS } from './cards'
+import { gazetteerPlace, placeFor } from './geo'
 import { isDroneText, keywordTag } from './keywords'
 import { normaliseUrl, parseBluesky, parseFeed, parseGdelt, parseWikipedia } from './parse'
 import { mergeItems } from './storage'
@@ -138,6 +139,31 @@ describe('cards', () => {
     const cards = buildCards(items, {}, null, () => tag({}))
     expect(applyFilters(cards, NO_FILTERS, new Set()).map(c => c.lead.id)).toEqual(['n'])
     expect(applyFilters(cards, { ...NO_FILTERS, includeSocial: true }, new Set())).toHaveLength(2)
+  })
+})
+
+describe('places and hotspots', () => {
+  it('prefers a city over its country, and Claude over the gazetteer', () => {
+    expect(gazetteerPlace('Russia attacks Kyiv with drones')?.name).toBe('Kyiv')
+    expect(gazetteerPlace('Iran-made Shahed drones hit Odesa')?.name).toBe('Odesa')
+    const i = item('k', 'Russia attacks Kyiv with drones', NOW)
+    expect(placeFor(i, tag({ place: { name: 'Obolon, Kyiv', lat: 50.5, lon: 30.5 } }))?.name).toBe('Obolon, Kyiv')
+    expect(placeFor(i, tag({ place: { name: 'Nowhere', lat: 0, lon: 0 } }))?.name).toBe('Kyiv')
+  })
+
+  it('falls back to the conflict centre, or no place', () => {
+    expect(placeFor(item('a', 'Drone strike overnight', NOW), tag({ conflict: 'Sudan' }))?.name).toBe('Sudan')
+    expect(placeFor(item('b', 'New drone battery unveiled', NOW), tag({ conflict: 'None' }))).toBeNull()
+  })
+
+  it('groups cards by place and filters by a picked place', () => {
+    const items = [item('a', 'Drones hit Kyiv', NOW), item('b', 'Kyiv drone attack', NOW), item('c', 'FAA drone delivery rules in Texas', NOW)]
+    const tags = { a: tag({}), b: tag({}), c: tag({ domain: 'civilian', conflict: 'None' }) }
+    const cards = buildCards(items, tags, null, () => tag({}))
+    const spots = hotspots(cards)
+    expect(spots[0]).toMatchObject({ name: 'Kyiv', count: 2, military: 2, civilian: 0 })
+    expect(spots[1]).toMatchObject({ name: 'United States', count: 1, civilian: 1 })
+    expect(applyFilters(cards, { ...NO_FILTERS, place: 'Kyiv' }, new Set())).toHaveLength(2)
   })
 })
 

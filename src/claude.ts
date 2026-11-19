@@ -19,6 +19,9 @@ const TagSchema = z.object({
       topics: z.array(z.enum(TOPICS)),
       summary: z.string(),
       eventKey: z.string(),
+      placeName: z.string(),
+      lat: z.number(),
+      lon: z.number(),
     }),
   ),
 })
@@ -32,6 +35,8 @@ For each story return:
 - topics: one to three from the allowed list.
 - summary: one plain sentence (under 25 words) on what happened and why it matters. Do not invent details beyond the headline and snippet.
 - eventKey: a short lowercase slug naming the underlying event, e.g. "kyiv-shahed-attack-2026-11-18". Stories about the same event must share the same eventKey; reuse a key from the "existing event keys" list when a story is about one of those events.
+
+- placeName, lat, lon: where the story happened, as specific as the headline allows (a city, region or country), with approximate coordinates in decimal degrees. If the story has no clear location (e.g. a product launch or a general policy debate), use placeName "" and lat 0, lon 0.
 
 Return one entry per story, using its id exactly.`
 
@@ -78,7 +83,13 @@ export async function tagWithClaude(
       }
       for (const t of response.parsed_output.tags) {
         if (!batch.some(b => b.id === t.id)) continue
-        tags[t.id] = { ...t, topics: t.topics.slice(0, 3), by: 'claude' }
+        const { placeName, lat, lon, ...rest } = t
+        tags[t.id] = {
+          ...rest,
+          topics: t.topics.slice(0, 3),
+          place: placeName ? { name: placeName, lat, lon } : undefined,
+          by: 'claude',
+        }
         if (t.eventKey) keys.add(t.eventKey)
       }
     } catch (err) {

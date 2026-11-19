@@ -1,6 +1,7 @@
 // Turns tagged items into the cards the feed shows: one card per event, with
 // every outlet's copy listed under it.
 
+import { placeFor, type Place } from './geo'
 import type { Conflict, Domain, NewsItem, Tag, Topic } from './types'
 
 export type Card = {
@@ -10,6 +11,7 @@ export type Card = {
   tag: Tag
   latestAt: string
   isNew: boolean
+  place: Place | null
 }
 
 export type Filters = {
@@ -20,6 +22,8 @@ export type Filters = {
   newOnly: boolean
   /** Bluesky posts are mostly commentary, so they're hidden unless asked for. */
   includeSocial?: boolean
+  /** A place picked on the map. */
+  place?: string
 }
 
 export const NO_FILTERS: Filters = { domain: 'all', conflicts: [], topics: [], starredOnly: false, newOnly: false, includeSocial: false }
@@ -56,6 +60,7 @@ export function buildCards(
         tag: g.tag,
         latestAt: new Date(time(latest)).toISOString(),
         isNew: sorted.some(i => Date.parse(i.firstSeenAt) > visit),
+        place: placeFor(lead, g.tag),
       }
     })
     .sort((a, b) => Date.parse(b.latestAt) - Date.parse(a.latestAt))
@@ -69,6 +74,25 @@ export function applyFilters(cards: Card[], f: Filters, starred: Set<string>): C
     if (f.topics.length && !c.tag.topics.some(t => f.topics.includes(t))) return false
     if (f.starredOnly && !c.items.some(i => starred.has(i.id))) return false
     if (f.newOnly && !c.isNew) return false
+    if (f.place && c.place?.name !== f.place) return false
     return true
   })
+}
+
+export type Hotspot = Place & { count: number; keys: string[]; military: number; civilian: number; isNew: boolean }
+
+/** Cards grouped by place, for the map. */
+export function hotspots(cards: Card[]): Hotspot[] {
+  const byName = new Map<string, Hotspot>()
+  for (const c of cards) {
+    if (!c.place) continue
+    const h = byName.get(c.place.name) ?? { ...c.place, count: 0, keys: [], military: 0, civilian: 0, isNew: false }
+    h.count++
+    h.keys.push(c.key)
+    if (c.tag.domain !== 'civilian') h.military++
+    if (c.tag.domain !== 'military') h.civilian++
+    h.isNew ||= c.isNew
+    byName.set(c.place.name, h)
+  }
+  return [...byName.values()].sort((a, b) => b.count - a.count)
 }

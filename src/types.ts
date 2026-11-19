@@ -45,6 +45,8 @@ export type Tag = {
   summary: string
   /** Short slug naming the underlying event, shared by duplicate stories. */
   eventKey: string
+  /** Where it happened, when Claude could tell. Older tags have none. */
+  place?: { name: string; lat: number; lon: number }
   by: 'claude' | 'keywords'
 }
 
