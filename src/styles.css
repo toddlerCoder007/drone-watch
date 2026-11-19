@@ -1,0 +1,95 @@
+:root {
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --text: #1c1d1f;
+  --muted: #6b6e73;
+  --line: #e2e0d9;
+  --accent: #b4441e;
+  --accent-soft: #f6e2d8;
+  --mil: #3b4a6b;
+  --civ: #2f6b4f;
+  --warn: #fff4d6;
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141517;
+    --surface: #1d1f22;
+    --text: #e8e6e1;
+    --muted: #9a9ca1;
+    --line: #2e3034;
+    --accent: #e0754d;
+    --accent-soft: #3a261d;
+    --mil: #9db0d8;
+    --civ: #8fcfae;
+    --warn: #3a3220;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+a { color: inherit; }
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+button:disabled { opacity: 0.6; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.page { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+.sub { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.actions { display: flex; gap: 8px; }
+
+.banner { margin-top: 16px; padding: 10px 14px; border-radius: 8px; background: var(--accent-soft); font-size: 14px; }
+.banner.warn { background: var(--warn); }
+
+.panel { margin-top: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 14px; }
+.panel label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+.panel input { font: inherit; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+.hint { color: var(--muted); margin: 8px 0 12px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.sources { width: 100%; border-collapse: collapse; }
+.sources td { padding: 4px 8px 4px 0; vertical-align: top; }
+
+.filters { margin: 20px 0 8px; display: flex; flex-direction: column; gap: 8px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.chip { padding: 4px 10px; border-radius: 999px; font-size: 13px; }
+.chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.chip.clear { border-style: dashed; color: var(--muted); }
+.sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
+
+.feed { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.card.new { border-left: 3px solid var(--accent); }
+.meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; }
+.badge { background: var(--accent); color: #fff; border-radius: 4px; padding: 1px 6px; font-weight: 700; font-size: 11px; }
+.pill { border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; text-transform: capitalize; }
+.pill.soft { color: var(--muted); text-transform: none; }
+.pill.military { color: var(--mil); border-color: currentColor; }
+.pill.civilian { color: var(--civ); border-color: currentColor; }
+.pill.both { color: var(--accent); border-color: currentColor; }
+.when { margin-left: auto; }
+.card h2 { font-size: 17px; line-height: 1.35; margin: 8px 0 4px; }
+.card h2 a { text-decoration: none; }
+.card h2 a:hover { text-decoration: underline; }
+.summary { margin: 4px 0 8px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+.foot a { text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+.muted { color: var(--muted); }
+.star { border: none; background: none; font-size: 20px; padding: 0 4px; color: var(--muted); }
+.star.on { color: var(--accent); }
+.empty { color: var(--muted); text-align: center; padding: 32px; }
+
+@media (max-width: 560px) {
+  .when { margin-left: 0; width: 100%; }
+}
