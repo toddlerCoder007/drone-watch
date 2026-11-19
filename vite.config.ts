@@ -20,8 +20,10 @@ for (const source of SOURCES.filter(s => s.proxied)) {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // Relative asset paths in builds, so the site works under any GitHub Pages subpath.
+  base: command === 'build' ? './' : '/',
   plugins: [react()],
   server: { port: 5173, proxy },
   test: { environment: 'jsdom' },
-})
+}))

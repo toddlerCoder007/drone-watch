@@ -1,4 +1,4 @@
-import { SOURCES, proxyPath, type SourceDef } from '../feeds.config'
+import { SOURCES, proxyPath, snapshotPath, type SourceDef } from '../feeds.config'
 import { isDroneText } from './keywords'
 import { parseBluesky, parseFeed, parseGdelt, parseWikipedia } from './parse'
 import { load, save } from './storage'
@@ -14,8 +14,12 @@ async function fetchText(url: string): Promise<string> {
   return res.text()
 }
 
+// Locally the Vite dev proxy fetches blocked feeds live. A static build (GitHub
+// Pages) has no proxy, so it reads the snapshot a scheduled workflow saved.
+const useSnapshots = import.meta.env.PROD
+
 async function fetchSource(src: SourceDef, now: string): Promise<NewsItem[]> {
-  const url = src.proxied ? proxyPath(src.id) : src.url
+  const url = !src.proxied ? src.url : useSnapshots ? import.meta.env.BASE_URL + snapshotPath(src.id) : proxyPath(src.id)
   switch (src.kind) {
     case 'rss': {
       const items = parseFeed(await fetchText(url), src, now)
@@ -53,12 +57,22 @@ async function fetchSource(src: SourceDef, now: string): Promise<NewsItem[]> {
   }
 }
 
-export type FetchResult = { items: NewsItem[]; status: Record<string, SourceStatus> }
+export type FetchResult = { items: NewsItem[]; status: Record<string, SourceStatus>; snapshotAt?: string }
+
+async function snapshotTime(): Promise<string | undefined> {
+  if (!useSnapshots) return undefined
+  try {
+    const res = await fetch(import.meta.env.BASE_URL + 'feeds/meta.json', { cache: 'no-cache' })
+    return res.ok ? ((await res.json()) as { fetchedAt?: string }).fetchedAt : undefined
+  } catch {
+    return undefined
+  }
+}
 
 /** Fetches every source in parallel; one failing source never sinks the rest. */
 export async function fetchAll(): Promise<FetchResult> {
   const now = new Date().toISOString()
-  const results = await Promise.allSettled(SOURCES.map(s => fetchSource(s, now)))
+  const [results, snapshotAt] = await Promise.all([Promise.allSettled(SOURCES.map(s => fetchSource(s, now))), snapshotTime()])
   const items: NewsItem[] = []
   const status: Record<string, SourceStatus> = {}
   results.forEach((r, i) => {
@@ -70,5 +84,5 @@ export async function fetchAll(): Promise<FetchResult> {
       status[src.id] = { ok: false, count: 0, error: String(r.reason?.message ?? r.reason), at: now }
     }
   })
-  return { items, status }
+  return { items, status, snapshotAt }
 }

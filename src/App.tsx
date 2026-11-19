@@ -31,6 +31,7 @@ export function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [showSources, setShowSources] = useState(false)
+  const [snapshotAt, setSnapshotAt] = useState<string | undefined>()
   const started = useRef(false)
 
   useEffect(() => save('items', items), [items])
@@ -43,8 +44,9 @@ export function App() {
     setBusy('Fetching news…')
     setNotice(null)
     try {
-      const { items: fresh, status: st } = await fetchAll()
+      const { items: fresh, status: st, snapshotAt: snap } = await fetchAll()
       setStatus(st)
+      setSnapshotAt(snap)
       const merged = mergeItems(load('items', {}), fresh, new Set(load<string[]>('starred', [])))
       setItems(merged)
       const currentTags = pruneTags(load('tags', {}), merged)
@@ -152,6 +154,12 @@ export function App() {
 
       {showSources && (
         <section className="panel">
+          {import.meta.env.PROD && (
+            <p className="hint">
+              Feeds that block browser requests are fetched every 2 hours by a scheduled job
+              {snapshotAt ? `; the latest snapshot is from ${ago(snapshotAt)}.` : '; no snapshot found yet.'}
+            </p>
+          )}
           <table className="sources">
             <tbody>
               {SOURCES.map(s => {
@@ -160,7 +168,7 @@ export function App() {
                   <tr key={s.id}>
                     <td>{st ? (st.ok ? '✓' : '✗') : '·'}</td>
                     <td>{s.name}</td>
-                    <td className="muted">{s.proxied ? 'via dev proxy' : 'direct'}</td>
+                    <td className="muted">{!s.proxied ? 'direct' : import.meta.env.PROD ? 'snapshot' : 'via dev proxy'}</td>
                     <td className="muted">{st ? (st.ok ? `${st.count} drone stories` : st.error) : 'not fetched yet'}</td>
                   </tr>
                 )

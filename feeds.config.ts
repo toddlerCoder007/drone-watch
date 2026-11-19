@@ -58,5 +58,8 @@ export const SOURCES: SourceDef[] = [
   { id: 'dronedj', name: 'DroneDJ', kind: 'rss', url: 'https://dronedj.com/feed/', proxied: true, droneOnly: true },
 ]
 
-/** The path the app calls for a proxied source. */
+/** The path the Vite dev proxy serves a proxied source on. */
 export const proxyPath = (id: string) => `/feeds/${id}`
+
+/** The file a static build serves a proxied source from (written by scripts/fetch-feeds.ts). */
+export const snapshotPath = (id: string) => `feeds/${id}.xml`
